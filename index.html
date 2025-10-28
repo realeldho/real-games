@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>REAL GAMES</title>
+  <style>
+    :root{
+      --gold:#f5c542;
+      --bg:#0e0e10;
+      --card:#222;
+      --muted:#aaa;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;font-family:'Poppins',Arial,sans-serif;background:var(--bg);color:#fff;
+    }
+    header{display:flex;justify-content:space-between;align-items:center;padding:14px 28px;background:#151515;border-bottom:1px solid #2a2a2a}
+    header h1{color:var(--gold);margin:0;font-size:22px}
+    nav{display:flex;align-items:center;gap:12px}
+    #searchBar{padding:8px;width:240px;border-radius:8px;border:1px solid #444;background:#1b1b1b;color:#fff}
+    button, input[type="submit"]{background:var(--gold);border:none;color:#000;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+    button:hover,input[type="submit"]:hover{background:#ffd95c}
+    .container{width:92%;max-width:1200px;margin:20px auto}
+    .top-rated{border-top:2px solid var(--gold);border-bottom:2px solid var(--gold);padding:18px 0;margin-bottom:20px}
+    .top-rated h2{color:var(--gold);text-align:center;margin:0 0 14px;font-size:20px}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    @media (max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:600px){.grid{grid-template-columns:1fr}.container{padding:0 12px}}
+    .card{background:var(--card);border-radius:12px;padding:12px;text-align:center;transition:transform .22s ease,box-shadow .22s ease;box-shadow:0 4px 12px rgba(0,0,0,.35)}
+    .card:hover{transform:translateY(-6px);box-shadow:0 18px 36px rgba(245,197,66,.14)}
+    .thumbnail{width:100%;height:160px;object-fit:cover;border-radius:8px;transition:transform .25s ease,box-shadow .25s ease}
+    .card:hover .thumbnail{transform:scale(1.06);box-shadow:0 12px 30px rgba(245,197,66,.12)}
+    .meta{display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px}
+    .meta .author{color:var(--muted);font-size:13px}
+    .like-btn{background:transparent;border:none;color:var(--gold);font-size:16px;cursor:pointer;padding:6px}
+    .like-btn.liked{color:#ff4b47}
+    .play-btn{display:inline-block;margin-top:10px;background:var(--gold);color:#000;padding:8px 14px;border-radius:8px;text-decoration:none;font-weight:700}
+    .small-del{background:#d9534f;color:white;border:none;padding:6px 8px;border-radius:8px;cursor:pointer}
+    #uploadSection.card{max-width:880px;margin:18px auto 40px;padding:14px}
+    footer{background:#111;padding:28px 18px;color:var(--muted);text-align:center;margin-top:30px}
+    footer h3{color:var(--gold);margin:8px 0}
+    input[type=text],textarea{width:100%;padding:8px;border-radius:8px;border:1px solid #333;background:#121212;color:#fff;margin-top:8px}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>REAL GAMES</h1>
+    <nav>
+      <input id="searchBar" type="text" placeholder="Search games...">
+      <button onclick="showLogin()">Login</button>
+      <button onclick="showRegister()">Register</button>
+      <button id="logoutBtn" onclick="logout()" style="display:none">Logout</button>
+      <span id="welcomeUser" style="color:var(--gold);font-weight:700;margin-left:6px"></span>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="top-rated">
+      <h2>🔥 Top Rated Games</h2>
+      <div id="topRatedGrid" class="grid"></div>
+    </section>
+
+    <div id="filterBar" style="text-align:center;display:none;margin-bottom:18px">
+      <button onclick="displayGames()">All Games</button>
+      <button onclick="displayMyGames()">My Games</button>
+      <button onclick="sortByLikes()">Most Liked</button>
+    </div>
+
+    <section id="gameList" class="grid"></section>
+
+    <section id="uploadSection" class="card" style="display:none">
+      <h3 style="margin:0 0 8px;color:var(--gold)">Upload Your Scratch Game</h3>
+      <input id="gameName" type="text" placeholder="Game name (e.g. Pixel Runner)">
+      <input id="projectLink" type="text" placeholder="Paste Scratch project link (https://scratch.mit.edu/projects/123456789/)">
+      <input style="margin-top:10px" type="submit" value="Upload Game" onclick="uploadGame()">
+      <p style="color:var(--muted);font-size:13px;margin-top:8px">We embed the project and fetch the thumbnail automatically.</p>
+    </section>
+  </main>
+
+  <footer>
+    <h3>About REAL GAMES</h3>
+    <p>REAL GAMES is a creative hub where players can enjoy unique, community-made Scratch games. Founded by Eldho.</p>
+    <p>Customer Care: <a href="mailto:eldhoshajiff@gmail.com" style="color:var(--gold)">eldhoshajiff@gmail.com</a></p>
+    <p style="margin-top:12px">© 2025 REAL GAMES. All rights reserved.</p>
+  </footer>
+
+  <script>
+    // Data
+    let users = JSON.parse(localStorage.getItem('users')) || [];
+    let games = JSON.parse(localStorage.getItem('games')) || [];
+    let currentUser = localStorage.getItem('currentUser') || null;
+
+    // Elements
+    const gameList = document.getElementById('gameList');
+    const topRatedGrid = document.getElementById('topRatedGrid');
+    const uploadSection = document.getElementById('uploadSection');
+    const welcomeUser = document.getElementById('welcomeUser');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const filterBar = document.getElementById('filterBar');
+    const searchBar = document.getElementById('searchBar');
+
+    // Helpers
+    function saveData(){ localStorage.setItem('users', JSON.stringify(users)); localStorage.setItem('games', JSON.stringify(games)); }
+    function getProjectID(link){ const m = String(link).match(/projects\/(\d+)/); return m?m[1]:null; }
+    function thumbnailURL(id){ return id ? `https://uploads.scratch.mit.edu/get_image/project/${id}_480x360.png` : ''; }
+    function projectPageURL(id){ return `https://scratch.mit.edu/projects/${id}/`; }
+    function likedKey(){ return currentUser ? `${currentUser}_likes` : null; }
+
+    // Auth UI
+    function showLogin(){
+      const username = prompt('Enter your username:');
+      const password = prompt('Enter your password:');
+      if(!username || !password) return alert('Cancelled');
+      const user = users.find(u => u.username === username && u.password === password);
+      if(user){ currentUser = username; localStorage.setItem('currentUser', username); alert('Login successful'); updateUI(); }
+      else alert('Invalid username or password.');
+    }
+    function showRegister(){
+      const username = prompt('Choose a username:');
+      if(!username) return alert('Cancelled');
+      if(users.find(u=>u.username===username)) return alert('Username taken');
+      const password = prompt('Create a password:');
+      if(!password) return alert('Cancelled');
+      users.push({username,password}); saveData(); alert('Registered — now login');
+    }
+    function logout(){
+      if(confirm('Log out?')){ currentUser = null; localStorage.removeItem('currentUser'); updateUI(); alert('Logged out'); }
+    }
+
+    // Upload
+    function uploadGame(){
+      if(!currentUser) return alert('Login to upload.');
+      const name = document.getElementById('gameName').value.trim();
+      const link = document.getElementById('projectLink').value.trim();
+      const id = getProjectID(link);
+      if(!name || !id) return alert('Enter a valid name and Scratch link.');
+      games.push({ user: currentUser, name, id, likes: 0 });
+      saveData(); document.getElementById('gameName').value=''; document.getElementById('projectLink').value=''; displayGames(); updateTopRated();
+      alert('Uploaded — good job!');
+    }
+
+    // Like system (logged-in only)
+    function toggleLike(index){
+      if(!currentUser) return alert('Login to like games.');
+      const key = likedKey();
+      let liked = JSON.parse(localStorage.getItem(key)) || [];
+      if(liked.includes(index)){
+        liked = liked.filter(i=>i!==index);
+        games[index].likes = Math.max(0, games[index].likes - 1);
+      } else {
+        liked.push(index);
+        games[index].likes++;
+      }
+      localStorage.setItem(key, JSON.stringify(liked));
+      saveData(); displayGames(); updateTopRated();
+    }
+
+    // Delete
+    function deleteGame(index){
+      if(!currentUser) return;
+      if(!confirm('Delete this game?')) return;
+      games.splice(index,1); saveData(); displayGames(); updateTopRated();
+    }
+
+    // Render All Games (grid)
+    function displayGames(filter=''){
+      gameList.innerHTML='';
+      const list = games.filter(g=>g.name.toLowerCase().includes(filter.toLowerCase()));
+      list.forEach((g, relativeIndex)=>{
+        // index in games array
+        const index = games.indexOf(g);
+        const thumb = thumbnailURL(g.id);
+        const liked = currentUser ? JSON.parse(localStorage.getItem(likedKey())) || [] : [];
+        const isLiked = liked.includes(index);
+        const card = document.createElement('div'); card.className='card';
+        card.innerHTML = `
+          <img src="${thumb}" class="thumbnail" alt="${g.name} thumbnail">
+          <h3 style="margin:8px 0 6px">${escapeHtml(g.name)}</h3>
+          <div class="meta"><div class="author">by ${escapeHtml(g.user)}</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="like-btn ${isLiked? 'liked':''}" onclick="toggleLike(${index})">❤ ${g.likes}</button>
+              ${currentUser===g.user?`<button class="small-del" onclick="deleteGame(${index})">Delete</button>`:''}
+            </div>
+          </div>
+          <a class="play-btn" href="${projectPageURL(g.id)}" target="_blank" rel="noopener">Play Now</a>
+        `;
+        gameList.appendChild(card);
+      });
+    }
+
+    // Top Rated (always show up to 3)
+    function updateTopRated(){
+      topRatedGrid.innerHTML='';
+      const top = [...games].sort((a,b)=>b.likes-a.likes).slice(0,3);
+      if(top.length===0){
+        topRatedGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--muted)">No games yet</div>`;
+        return;
+      }
+      top.forEach(g=>{
+        const index = games.indexOf(g);
+        const thumb = thumbnailURL(g.id);
+        const card = document.createElement('div'); card.className='card';
+        card.innerHTML = `
+          <img src="${thumb}" class="thumbnail" alt="${g.name} thumbnail">
+          <h3 style="margin:8px 0 6px">${escapeHtml(g.name)}</h3>
+          <div class="meta"><div class="author">by ${escapeHtml(g.user)}</div><div style="color:var(--muted)">❤ ${g.likes}</div></div>
+          <a class="play-btn" href="${projectPageURL(g.id)}" target="_blank" rel="noopener">Play Now</a>
+        `;
+        topRatedGrid.appendChild(card);
+      });
+    }
+
+    // Sorting
+    function sortByLikes(){ games.sort((a,b)=>b.likes-a.likes); displayGames(); }
+
+    // My Games filter
+    function displayMyGames(){
+      if(!currentUser) return alert('Login to view your games');
+      gameList.innerHTML='';
+      const mine = games.filter(g=>g.user===currentUser);
+      if(mine.length===0){ gameList.innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--muted)">You have no uploads</div>'; return; }
+      mine.forEach(g=>{
+        const index = games.indexOf(g); const thumb = thumbnailURL(g.id);
+        const card = document.createElement('div'); card.className='card';
+        card.innerHTML=`
+          <img src="${thumb}" class="thumbnail">
+          <h3 style="margin:8px 0 6px">${escapeHtml(g.name)}</h3>
+          <div class="meta"><div class="author">by ${escapeHtml(g.user)}</div>
+            <div style="display:flex;gap:8px;align-items:center"><div style="color:var(--muted)">❤ ${g.likes}</div>
+            <button class="small-del" onclick="deleteGame(${index})">Delete</button></div></div>
+          <a class="play-btn" href="${projectPageURL(g.id)}" target="_blank" rel="noopener">Play Now</a>
+        `;
+        gameList.appendChild(card);
+      });
+    }
+
+    // UI updates
+    searchBar.addEventListener('input', e=> displayGames(e.target.value));
+    function scrollToUpload(){ if(!currentUser) return alert('Login to upload'); uploadSection.scrollIntoView({behavior:'smooth'}); }
+
+    function updateUI(){
+      if(currentUser){
+        welcomeUser.textContent = `Welcome, ${currentUser}`;
+        uploadSection.style.display = 'block';
+        logoutBtn.style.display = 'inline-block';
+        filterBar.style.display = 'block';
+      } else {
+        welcomeUser.textContent = '';
+        uploadSection.style.display = 'none';
+        logoutBtn.style.display = 'none';
+        filterBar.style.display = 'none';
+      }
+      displayGames(); updateTopRated();
+    }
+
+    // small escape to avoid injection if users paste html
+    function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // initialize
+    updateUI();
+  </script>
+</body>
+</html>
